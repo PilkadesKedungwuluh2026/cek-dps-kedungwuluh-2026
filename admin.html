@@ -64,6 +64,20 @@ label{font-size:13px;font-weight:bold;display:block;margin:10px 0 6px}
 <button id="importBtn" style="margin-top:12px">Impor DPT ke Firestore</button><div id="importMsg" class="muted"></div>
 <p class="muted">Impor akan menambahkan nomor DPT yang belum ada dan tidak mengubah status hadir pada data yang sudah ada. Lakukan sebelum hari pemilihan.</p>
 <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+  
+<hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+
+<h2>Reset Seluruh Kehadiran</h2>
+<div class="notice">
+  Fitur khusus administrator. Seluruh status kehadiran pemilih akan dikembalikan menjadi BELUM HADIR. Data DPT tidak akan dihapus.
+</div>
+
+<button id="resetAttendanceBtn" class="danger" style="margin-top:12px">
+  Reset Seluruh Kehadiran
+</button>
+
+<div id="resetAttendanceMsg" class="muted"></div>
+
 <h2>Catatan pengelolaan akun</h2><p class="muted">Akun dibuat melalui Firebase Authentication. Hak akses ditentukan oleh dokumen users/{UID} di Firestore: role admin atau petugas. Jangan bagikan akun admin.</p>
 </section>
 <div id="message" aria-live="polite"></div>
@@ -213,5 +227,70 @@ resetQcBtn.onclick = async () => {
     resetQcBtn.disabled = false;
   }
 };
+  
+$('resetAttendanceBtn').onclick = async () => {
+  if (currentRole !== 'admin') return;
+
+  const yakin = confirm(
+    'PERINGATAN!\n\n' +
+    'Reset seluruh 2.569 status kehadiran menjadi BELUM HADIR?\n\n' +
+    'Data DPT dan Quick Count tidak akan dihapus.'
+  );
+
+  if (!yakin) return;
+
+  const btn = $('resetAttendanceBtn');
+  const status = $('resetAttendanceMsg');
+
+  btn.disabled = true;
+  status.textContent = 'Memproses reset kehadiran...';
+
+  try {
+    const snap = await db.collection('voters').get();
+
+    if (snap.size !== 2569) {
+      throw new Error(
+        'Jumlah data DPT tidak sesuai. Ditemukan: ' + snap.size
+      );
+    }
+
+    let selesai = 0;
+
+    for (let i = 0; i < snap.docs.length; i += 400) {
+      const batch = db.batch();
+      const bagian = snap.docs.slice(i, i + 400);
+
+      bagian.forEach(doc => {
+        batch.update(doc.ref, {
+          hadir: false,
+          waktuHadir: null,
+          petugasUid: null
+        });
+      });
+
+      await batch.commit();
+      selesai += bagian.length;
+
+      status.textContent =
+        'Reset berjalan: ' + selesai + ' / 2569';
+    }
+
+    status.textContent =
+      'BERHASIL! 2.569 pemilih kembali BELUM HADIR.';
+
+    msg(
+      'Seluruh kehadiran berhasil direset. Data DPT dan Quick Count tetap aman.',
+      'success'
+    );
+
+  } catch (e) {
+    status.textContent = 'Reset gagal: ' + e.message;
+    msg('Reset gagal: ' + e.message, 'error');
+
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 </script>
 </body></html>
