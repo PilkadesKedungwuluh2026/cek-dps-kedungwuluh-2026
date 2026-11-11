@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monitoring Pilkades Kedungwuluh 2026</title>
+<style>
+:root{--navy:#082f70;--blue:#1769c2;--red:#b42318;--gold:#f5c451;--ink:#172033;--muted:#667085;--bg:#f3f6fb;--line:#e2e8f0;--green:#16834a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+header{background:linear-gradient(135deg,#082f70,#124b9b);color:white;padding:22px 16px;border-bottom:5px solid var(--gold)}
+.wrap{max-width:1100px;margin:auto;padding:0 14px}header h1{font-size:22px;margin:0 0 7px}header p{margin:0;color:#e8efff;font-size:13px;line-height:1.5}
+main{max-width:1100px;margin:20px auto;padding:0 14px}.panel{background:white;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 5px 18px rgba(16,40,90,.05)}
+h2{font-size:18px;color:var(--navy);margin:0 0 12px}.muted{color:var(--muted);font-size:13px;line-height:1.5}
+input,button,select{font:inherit;border-radius:10px;padding:12px;border:1px solid #cbd5e1}input,select{width:100%;background:white}button{border:0;background:var(--blue);color:white;font-weight:bold;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#eaf2ff;color:var(--navy)}.danger{background:#fff0ef;color:var(--red)}.hidden{display:none!important}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.stat{background:#f5f7fb;border-radius:12px;padding:14px}.stat small{display:block;color:var(--muted);font-size:12px}.stat strong{display:block;font-size:24px;margin-top:5px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.row .fit{flex:0 0 auto}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tabs button{background:#e8edf5;color:#24344d}.tabs button.active{background:var(--navy);color:white}
+.result{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px}.tag{display:inline-block;padding:5px 9px;border-radius:20px;background:#e8f7ee;color:var(--green);font-size:12px;font-weight:bold}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:12px}
+.notice{padding:12px;border-radius:10px;background:#fff8e6;color:#805b00;font-size:13px;line-height:1.5}
+#message{margin:12px 0;font-size:14px}.success{color:var(--green)}.error{color:var(--red)}
+label{font-size:13px;font-weight:bold;display:block;margin:10px 0 6px}
+@media(max-width:700px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stat strong{font-size:21px}header h1{font-size:19px}.panel{padding:14px}table{font-size:12px}th,td{padding:8px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>PILKADES KEDUNGWULUH 2026</h1><p>Sistem Monitoring Kehadiran Pemilih & Quick Count<br>Kecamatan Kalimanah · Kabupaten Purbalingga</p></div></header>
+<main>
+<section id="loginPanel" class="panel">
+<h2>Login Petugas Panitia</h2><p class="muted">Masuk menggunakan akun yang dibuat oleh administrator.</p>
+<label>Email</label><input id="email" type="email" autocomplete="username" placeholder="email petugas">
+<label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password">
+<div class="row" style="margin-top:14px"><button id="loginBtn">Masuk</button></div><div id="loginMsg"></div>
+</section>
+<section id="appPanel" class="hidden">
+<div class="panel row"><div><strong id="who"></strong><div class="muted" id="roleLabel"></div></div><button id="logoutBtn" class="secondary fit">Keluar</button></div>
+<div class="tabs">
+<button class="active" data-tab="attendance">Absensi</button><button data-tab="dashboard">Rekap Kehadiran</button><button data-tab="quick">Quick Count</button><button data-tab="admin" id="adminTab" class="hidden">Admin & Import</button>
+</div>
+<section id="tab-attendance" class="panel">
+<h2>Absensi Pemilih</h2><p class="muted">Masukkan nomor urut DPT. Pastikan identitas pemilih sudah diverifikasi sebelum mengonfirmasi kehadiran.</p>
+<div class="row"><div><label>Nomor urut DPT</label><input id="voterNumber" type="number" min="1" max="2569" inputmode="numeric" placeholder="Contoh: 125"></div><div class="fit" style="align-self:end"><button id="findBtn">Cari Pemilih</button></div></div>
+<div id="voterResult"></div>
+</section>
+<section id="tab-dashboard" class="panel hidden">
+<h2>Rekap Kehadiran Real-time</h2><div class="grid" id="stats"></div><div style="overflow:auto;margin-top:15px"><table><thead><tr><th>TPS</th><th>DPT</th><th>Hadir</th><th>Belum hadir</th><th>Partisipasi</th></tr></thead><tbody id="tpsRows"></tbody></table></div>
+<button id="exportBtn" class="secondary" style="margin-top:14px">Ekspor rekap ke CSV</button>
+</section>
+<section id="tab-quick" class="panel hidden">
+<h2>Quick Count — Rekap Gabungan Desa</h2><div class="notice">Masukkan akumulasi hasil penghitungan suara yang telah direkap panitia. Ini adalah hasil sementara, bukan penetapan hasil resmi. Jangan mengaitkan pilihan calon dengan identitas pemilih.</div>
+<div class="grid" style="margin-top:14px"><div class="stat"><small>Calon nomor 1</small><strong id="qc1">0</strong></div><div class="stat"><small>Calon nomor 2</small><strong id="qc2">0</strong></div><div class="stat"><small>Suara sah</small><strong id="qvalid">0</strong></div><div class="stat"><small>Suara tidak sah</small><strong id="qinvalid">0</strong></div></div>
+<p class="muted" id="qcMeta">Belum ada pembaruan.</p>
+<div id="qcForm" class="hidden">
+<label>Suara calon nomor 1</label><input id="inC1" type="number" min="0" step="1">
+<label>Suara calon nomor 2</label><input id="inC2" type="number" min="0" step="1">
+<label>Suara tidak sah</label><input id="inInvalid" type="number" min="0" step="1">
+<label>Keterangan sumber rekap (opsional)</label><input id="inNote" maxlength="160" placeholder="Contoh: Rekapitulasi formulir panitia">
+<button id="saveQc" style="margin-top:14px">Simpan pembaruan Quick Count</button>
+<p class="muted">Total suara sah dihitung otomatis dari calon 1 + calon 2.</p>
+</div>
+</section>
+<section id="tab-admin" class="panel hidden">
+<h2>Administrasi</h2><div class="notice">Unggah CSV DPT yang sudah dibersihkan. File ini hanya diproses oleh akun admin dan tidak perlu dimasukkan ke repository publik.</div>
+<label>File CSV DPT</label><input id="csvFile" type="file" accept=".csv,text/csv">
+<button id="importBtn" style="margin-top:12px">Impor DPT ke Firestore</button><div id="importMsg" class="muted"></div>
+<p class="muted">Impor akan menambahkan nomor DPT yang belum ada dan tidak mengubah status hadir pada data yang sudah ada. Lakukan sebelum hari pemilihan.</p>
+<hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+<h2>Catatan pengelolaan akun</h2><p class="muted">Akun dibuat melalui Firebase Authentication. Hak akses ditentukan oleh dokumen users/{UID} di Firestore: role admin atau petugas. Jangan bagikan akun admin.</p>
+</section>
+<div id="message" aria-live="polite"></div>
+</section>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCtWgCgL8fNhH-CF3vwS1WLBX66Xo97Noo",
+  authDomain: "pilkades-kedungwuluh-2026.firebaseapp.com",
+  projectId: "pilkades-kedungwuluh-2026",
+  storageBucket: "pilkades-kedungwuluh-2026.firebasestorage.app",
+  messagingSenderId: "70735767251",
+  appId: "1:70735767251:web:0d503c4b0a3f91d0a91626",
+  measurementId: "G-4SJ6N2DF1W"
+};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.firestore();
+let currentUser=null, currentRole=null, voterCache=[], unsubscribeVoters=null, unsubscribeQc=null, selectedVoter=null;
+const $=id=>document.getElementById(id), fmt=n=>Number(n||0).toLocaleString('id-ID');
+function msg(text,kind=''){ $('message').className=kind; $('message').textContent=text; }
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+$('loginBtn').onclick=async()=>{ $('loginMsg').textContent='Memproses…'; try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);}catch(e){$('loginMsg').textContent='Login gagal: '+e.message;}};
+$('logoutBtn').onclick=()=>auth.signOut();
+auth.onAuthStateChanged(async user=>{
+ currentUser=user; if(unsubscribeVoters)unsubscribeVoters(); if(unsubscribeQc)unsubscribeQc();
+ if(!user){$('loginPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');return;}
+ try{
+  const roleSnap=await db.collection('users').doc(user.uid).get();
+  if(!roleSnap.exists || !['admin','petugas'].includes(roleSnap.data().role)){await auth.signOut();$('loginMsg').textContent='Akun belum diberi hak akses. Hubungi admin panitia.';return;}
+  currentRole=roleSnap.data().role;
+  $('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');
+  $('who').textContent=user.email;$('roleLabel').textContent=currentRole==='admin'?'Administrator':'Petugas absensi';
+  $('adminTab').classList.toggle('hidden',currentRole!=='admin');
+  $('qcForm').classList.toggle('hidden',currentRole!=='admin');
+  subscribeData();
+ }catch(e){msg('Gagal memuat profil akses: '+e.message,'error');}
+});
+function subscribeData(){
+ unsubscribeVoters=db.collection('voters').onSnapshot(snap=>{
+  voterCache=snap.docs.map(d=>({id:d.id,...d.data()})); renderDashboard();
+ },e=>msg('Gagal membaca DPT: '+e.message,'error'));
+ unsubscribeQc=db.collection('settings').doc('quickCount').onSnapshot(doc=>{
+  const q=doc.exists?doc.data():{}; $('qc1').textContent=fmt(q.candidate1);$('qc2').textContent=fmt(q.candidate2);
+  $('qvalid').textContent=fmt((q.candidate1||0)+(q.candidate2||0));$('qinvalid').textContent=fmt(q.invalid);
+  $('qcMeta').textContent=doc.exists?'Pembaruan: '+(q.updatedAt?.toDate?q.updatedAt.toDate().toLocaleString('id-ID'):'waktu tidak tersedia'):'Belum ada pembaruan.';
+  if(currentRole==='admin'){$('inC1').value=q.candidate1||0;$('inC2').value=q.candidate2||0;$('inInvalid').value=q.invalid||0;$('inNote').value=q.note||'';}
+ },e=>msg('Gagal membaca Quick Count: '+e.message,'error'));
+}
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));
+ ['attendance','dashboard','quick','admin'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==b.dataset.tab));
+});
+function renderDashboard(){
+ const total=voterCache.length, hadir=voterCache.filter(v=>v.hadir===true).length, belum=total-hadir;
+ const male=voterCache.filter(v=>v.jenis_kelamin==='L').length, female=voterCache.filter(v=>v.jenis_kelamin==='P').length;
+ const cards=[['Total DPT',total],['Sudah hadir',hadir],['Belum hadir',belum],['Partisipasi',total?((hadir/total)*100).toFixed(1)+'%':'0%'],['Laki-laki',male],['Perempuan',female]];
+ $('stats').innerHTML=cards.map(([a,b])=>'<div class="stat"><small>'+a+'</small><strong>'+ (typeof b==='number'?fmt(b):b)+'</strong></div>').join('');
+ const tps=['TPS 1','TPS 2','TPS 3'];
+ $('tpsRows').innerHTML=tps.map(t=>{const a=voterCache.filter(v=>v.tps===t),h=a.filter(v=>v.hadir).length;return '<tr><td>'+t+'</td><td>'+fmt(a.length)+'</td><td>'+fmt(h)+'</td><td>'+fmt(a.length-h)+'</td><td>'+(a.length?(h/a.length*100).toFixed(1):'0')+'%</td></tr>';}).join('');
+}
+$('findBtn').onclick=()=>{
+ const n=String(parseInt($('voterNumber').value,10)); const v=voterCache.find(x=>x.id===n);
+ selectedVoter=v||null;
+ if(!v){$('voterResult').innerHTML='<div class="result">Nomor urut tidak ditemukan. Pastikan database DPT sudah diimpor.</div>';return;}
+ $('voterResult').innerHTML='<div class="result"><strong>'+escapeHtml(v.nama_pemilih)+'</strong><p class="muted">Nomor '+fmt(v.nomor_urut)+' · '+escapeHtml(v.jenis_kelamin)+' · RW '+escapeHtml(v.rw)+' · '+escapeHtml(v.tps)+'</p><p>'+(v.hadir?'<span class="tag">SUDAH HADIR</span>':'<span class="tag" style="background:#fff3d6;color:#805b00">BELUM HADIR</span>')+'</p>'+(v.hadir?'':'<button id="confirmAttend">Konfirmasi HADIR</button>')+'</div>';
+ if(!v.hadir)$('confirmAttend').onclick=()=>confirmAttendance(v);
+};
+async function confirmAttendance(v){
+ if(!confirm('Konfirmasi bahwa '+v.nama_pemilih+' (nomor '+v.nomor_urut+') benar-benar hadir?'))return;
+ try{
+  await db.runTransaction(async tx=>{const ref=db.collection('voters').doc(String(v.nomor_urut));const snap=await tx.get(ref);if(!snap.exists)throw new Error('Data pemilih tidak ditemukan');if(snap.data().hadir===true)throw new Error('Pemilih ini sudah tercatat hadir.');tx.update(ref,{hadir:true,waktuHadir:firebase.firestore.FieldValue.serverTimestamp(),petugasUid:currentUser.uid});});
+  $('voterResult').innerHTML='<div class="result"><strong>'+escapeHtml(v.nama_pemilih)+'</strong><p><span class="tag">KEHADIRAN BERHASIL DICATAT</span></p></div>';msg('Kehadiran berhasil dicatat.','success');
+ }catch(e){msg('Tidak dapat mencatat kehadiran: '+e.message,'error');}
+}
+$('saveQc').onclick=async()=>{
+ const a=Number($('inC1').value),b=Number($('inC2').value),c=Number($('inInvalid').value);
+ if(![a,b,c].every(x=>Number.isSafeInteger(x)&&x>=0)){msg('Masukkan angka bulat nol atau lebih.','error');return;}
+ if(a+b+c>2569){msg('Jumlah suara melebihi total DPT 2.569. Periksa kembali angka.','error');return;}
+ try{await db.collection('settings').doc('quickCount').set({candidate1:a,candidate2:b,invalid:c,note:$('inNote').value.trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:currentUser.uid});msg('Quick Count berhasil diperbarui.','success');}catch(e){msg('Gagal menyimpan Quick Count: '+e.message,'error');}
+};
+function parseCSV(text){
+ const rows=[];let row=[],cell='',quoted=false;
+ for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'&&quoted&&text[i+1]==='"'){cell+='"';i++;}else if(c==='"'){quoted=!quoted;}else if(c===','&&!quoted){row.push(cell);cell='';}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(x=>x.trim()))rows.push(row);row=[];cell='';}else cell+=c;}
+ row.push(cell);if(row.some(x=>x.trim()))rows.push(row);
+ const headers=rows.shift().map(x=>x.trim().replace(/^\uFEFF/,''));
+ return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,(r[i]||'').trim()])));
+}
+$('importBtn').onclick=async()=>{
+ const file=$('csvFile').files[0];if(!file){$('importMsg').textContent='Pilih file CSV terlebih dahulu.';return;}
+ try{
+  $('importBtn').disabled=true;$('importMsg').textContent='Membaca file…';
+  const rows=parseCSV(await file.text());
+  if(rows.length!==2569)throw new Error('Jumlah baris harus tepat 2.569. Terbaca: '+rows.length);
+  const seen=new Set();
+  for(const r of rows){const n=Number(r.nomor_urut);if(!Number.isInteger(n)||n<1||n>2569||!r.nama_pemilih||!['L','P'].includes(r.jenis_kelamin)||!['001','002','003','004'].includes(String(r.rw).padStart(3,'0')))throw new Error('Ada baris tidak valid pada nomor '+(r.nomor_urut||'?'));if(seen.has(n))throw new Error('Nomor urut ganda: '+n);seen.add(n);}
+  if(seen.size!==2569)throw new Error('Nomor urut harus lengkap 1–2569.');
+  const existing=await db.collection('voters').get();const exists=new Set(existing.docs.map(d=>d.id));
+  const missing=rows.filter(r=>!exists.has(String(Number(r.nomor_urut))));
+  let done=0;
+  for(let i=0;i<missing.length;i+=400){const batch=db.batch();missing.slice(i,i+400).forEach(r=>{const n=Number(r.nomor_urut),rw=String(r.rw).padStart(3,'0');const tps=rw==='001'?'TPS 1':rw==='002'?'TPS 2':'TPS 3';batch.set(db.collection('voters').doc(String(n)),{nomor_urut:n,nama_pemilih:r.nama_pemilih,jenis_kelamin:r.jenis_kelamin,rw,tps,hadir:false,waktuHadir:null,petugasUid:null});});await batch.commit();done+=Math.min(400,missing.length-i);$('importMsg').textContent='Mengimpor… '+done+' / '+missing.length;}
+  $('importMsg').textContent='Selesai. '+done+' data baru ditambahkan; '+(rows.length-done)+' data sudah ada dan tidak diubah.';
+ }catch(e){$('importMsg').textContent='Impor gagal: '+e.message;}finally{$('importBtn').disabled=false;}
+};
+$('exportBtn').onclick=()=>{
+ const rows=[['nomor_urut','nama_pemilih','jenis_kelamin','rw','tps','status_kehadiran'],...voterCache.map(v=>[v.nomor_urut,v.nama_pemilih,v.jenis_kelamin,v.rw,v.tps,v.hadir?'HADIR':'BELUM HADIR'])];
+ const csv=rows.map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));a.download='rekap-kehadiran-pilkades-kedungwuluh.csv';a.click();URL.revokeObjectURL(a.href);
+};
+</script>
+</body></html>

@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function isAdmin() { return signedIn() && userRole() == 'admin'; }
+    function isStaff() { return signedIn() && userRole() in ['admin', 'petugas']; }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /voters/{voterId} {
+      allow read: if isStaff();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (isStaff()
+          && resource.data.hadir == false
+          && request.resource.data.hadir == true
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['hadir', 'waktuHadir', 'petugasUid'])
+          && request.resource.data.petugasUid == request.auth.uid);
+    }
+
+    match /settings/{docId} {
+      allow read: if isStaff();
+      allow write: if isAdmin() && docId == 'quickCount';
+    }
+  }
+}
