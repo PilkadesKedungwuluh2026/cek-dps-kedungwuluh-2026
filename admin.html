@@ -175,5 +175,43 @@ $('exportBtn').onclick=()=>{
  const csv=rows.map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));a.download='rekap-kehadiran-pilkades-kedungwuluh.csv';a.click();URL.revokeObjectURL(a.href);
 };
+  
+// TOMBOL RESET QUICK COUNT KHUSUS ADMIN
+const resetQcBtn = document.createElement('button');
+resetQcBtn.id = 'resetQcBtn';
+resetQcBtn.textContent = 'Reset Quick Count ke Nol';
+resetQcBtn.className = 'danger';
+resetQcBtn.style.margin = '12px 0';
+$('saveQc').insertAdjacentElement('afterend', resetQcBtn);
+
+resetQcBtn.onclick = async () => {
+  if (currentRole !== 'admin') return;
+
+  if (!confirm('Yakin reset seluruh angka Quick Count menjadi 0?')) return;
+
+  resetQcBtn.disabled = true;
+
+  try {
+    await db.collection('settings').doc('quickCount').set({
+      candidate1: 0,
+      candidate2: 0,
+      invalid: 0,
+      note: 'Reset oleh admin',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.uid
+    });
+
+    $('inC1').value = 0;
+    $('inC2').value = 0;
+    $('inInvalid').value = 0;
+    $('inNote').value = '';
+
+    msg('Quick Count berhasil direset ke nol.', 'success');
+  } catch (e) {
+    msg('Reset gagal: ' + e.message, 'error');
+  } finally {
+    resetQcBtn.disabled = false;
+  }
+};
 </script>
 </body></html>
